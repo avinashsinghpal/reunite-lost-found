@@ -9,7 +9,13 @@
     "dev": "nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["lost", "found", "api", "express", "supabase"],
+  "keywords": [
+    "lost",
+    "found",
+    "api",
+    "express",
+    "supabase"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
