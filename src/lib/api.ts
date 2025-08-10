@@ -1,5 +1,5 @@
-// API service for Lost & Found backend
-const API_BASE_URL = 'http://localhost:3001/api';
+// API service for Lost & Found using Supabase directly
+import { supabase, TABLES } from './supabase'
 
 export interface Item {
   id: string;
@@ -60,57 +60,25 @@ export interface UploadResponse extends ApiResponse<{
   mimeType: string;
 }> {}
 
-// Generic API request function
-async function apiRequest<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
-  
-  const config: RequestInit = {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-    ...options,
-  };
-
-  console.log('🌐 Making API request:', {
-    url,
-    method: config.method || 'GET',
-    headers: config.headers,
-    body: config.body
-  });
-
-  try {
-    const response = await fetch(url, config);
-    console.log('✅ API response received:', {
-      status: response.status,
-      statusText: response.statusText,
-      headers: Object.fromEntries(response.headers.entries())
-    });
-
-    const data = await response.json();
-    console.log('📦 API response data:', data);
-
-    if (!response.ok) {
-      throw new Error(data.message || `HTTP error! status: ${response.status}`);
-    }
-
-    return data;
-  } catch (error) {
-    console.error('❌ API request failed:', {
-      error,
-      errorMessage: error instanceof Error ? error.message : 'Unknown error',
-      errorType: error.constructor.name,
-      url,
-      config
-    });
-    throw error;
+// Helper function to convert Supabase response to our API format
+function createApiResponse<T>(data: T, message: string = 'Success'): ApiResponse<T> {
+  return {
+    success: true,
+    message,
+    data
   }
 }
 
-// Items API
+function createErrorResponse(message: string, errors?: string[]): ApiResponse<any> {
+  return {
+    success: false,
+    message,
+    data: null as any,
+    errors
+  }
+}
+
+// Items API using Supabase
 export const itemsApi = {
   // Get all items with optional filters
   async getItems(params?: {
@@ -120,115 +88,244 @@ export const itemsApi = {
     page?: number;
     limit?: number;
   }): Promise<ItemsResponse> {
-    const searchParams = new URLSearchParams();
-    
-    if (params?.type) searchParams.append('type', params.type);
-    if (params?.location) searchParams.append('location', params.location);
-    if (params?.search) searchParams.append('search', params.search);
-    if (params?.page) searchParams.append('page', params.page.toString());
-    if (params?.limit) searchParams.append('limit', params.limit.toString());
+    try {
+      console.log('🔍 Fetching items with params:', params);
+      
+      let query = supabase
+        .from(TABLES.ITEMS)
+        .select('*')
+        .order('date_reported', { ascending: false });
 
-    const queryString = searchParams.toString();
-    const endpoint = `/items${queryString ? `?${queryString}` : ''}`;
-    
-    return apiRequest<ItemsResponse>(endpoint);
+      // Apply filters
+      if (params?.type) {
+        query = query.eq('type', params.type);
+      }
+      
+      if (params?.location) {
+        query = query.ilike('location', `%${params.location}%`);
+      }
+      
+      if (params?.search) {
+        query = query.or(`name.ilike.%${params.search}%,description.ilike.%${params.search}%`);
+      }
+
+      // Apply pagination
+      if (params?.page && params?.limit) {
+        const from = (params.page - 1) * params.limit;
+        const to = from + params.limit - 1;
+        query = query.range(from, to);
+      }
+
+      const { data, error, count } = await query;
+
+      if (error) {
+        console.error('❌ Error fetching items:', error);
+        throw new Error(error.message);
+      }
+
+      console.log('✅ Items fetched successfully:', { count: data?.length });
+      
+      return createApiResponse(data || [], 'Items fetched successfully');
+    } catch (error) {
+      console.error('❌ Failed to fetch items:', error);
+      throw error;
+    }
   },
 
   // Get a specific item by ID
   async getItem(id: string): Promise<ItemResponse> {
-    return apiRequest<ItemResponse>(`/items/${id}`);
+    try {
+      console.log('🔍 Fetching item:', id);
+      
+      const { data, error } = await supabase
+        .from(TABLES.ITEMS)
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        console.error('❌ Error fetching item:', error);
+        throw new Error(error.message);
+      }
+
+      console.log('✅ Item fetched successfully:', data);
+      return createApiResponse(data, 'Item fetched successfully');
+    } catch (error) {
+      console.error('❌ Failed to fetch item:', error);
+      throw error;
+    }
   },
 
   // Create a new item
   async createItem(itemData: CreateItemData): Promise<ItemResponse> {
-    return apiRequest<ItemResponse>('/items', {
-      method: 'POST',
-      body: JSON.stringify(itemData),
-    });
+    try {
+      console.log('📝 Creating new item:', itemData);
+      
+      // Add timestamp
+      const itemWithTimestamp = {
+        ...itemData,
+        date_reported: new Date().toISOString()
+      };
+
+      const { data, error } = await supabase
+        .from(TABLES.ITEMS)
+        .insert([itemWithTimestamp])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error creating item:', error);
+        throw new Error(error.message);
+      }
+
+      console.log('✅ Item created successfully:', data);
+      return createApiResponse(data, 'Item created successfully');
+    } catch (error) {
+      console.error('❌ Failed to create item:', error);
+      throw error;
+    }
   },
 
   // Update an item
   async updateItem(id: string, itemData: UpdateItemData): Promise<ItemResponse> {
-    return apiRequest<ItemResponse>(`/items/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(itemData),
-    });
+    try {
+      console.log('✏️ Updating item:', id, itemData);
+      
+      const { data, error } = await supabase
+        .from(TABLES.ITEMS)
+        .update(itemData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error updating item:', error);
+        throw new Error(error.message);
+      }
+
+      console.log('✅ Item updated successfully:', data);
+      return createApiResponse(data, 'Item updated successfully');
+    } catch (error) {
+      console.error('❌ Failed to update item:', error);
+      throw error;
+    }
   },
 
   // Delete an item
   async deleteItem(id: string): Promise<ApiResponse<null>> {
-    return apiRequest<ApiResponse<null>>(`/items/${id}`, {
-      method: 'DELETE',
-    });
+    try {
+      console.log('🗑️ Deleting item:', id);
+      
+      const { error } = await supabase
+        .from(TABLES.ITEMS)
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('❌ Error deleting item:', error);
+        throw new Error(error.message);
+      }
+
+      console.log('✅ Item deleted successfully');
+      return createApiResponse(null, 'Item deleted successfully');
+    } catch (error) {
+      console.error('❌ Failed to delete item:', error);
+      throw error;
+    }
   },
 };
 
-// Upload API
+// Upload API using Supabase Storage
 export const uploadApi = {
-  // Upload an image file
+  // Upload an image file to Supabase Storage
   async uploadImage(file: File): Promise<UploadResponse> {
-    console.log('📤 Starting image upload:', {
-      fileName: file.name,
-      fileSize: file.size,
-      fileType: file.type
-    });
-
-    const formData = new FormData();
-    formData.append('image', file);
-
-    const url = `${API_BASE_URL}/upload`;
-    
     try {
-      console.log('🌐 Uploading to:', url);
-      const response = await fetch(url, {
-        method: 'POST',
-        body: formData,
+      console.log('📤 Starting image upload to Supabase:', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type
       });
 
-      console.log('✅ Upload response received:', {
-        status: response.status,
-        statusText: response.statusText
-      });
+      // Generate unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `${TABLES.STORAGE}/${fileName}`;
 
-      const data = await response.json();
-      console.log('📦 Upload response data:', data);
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from(TABLES.STORAGE)
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-      if (!response.ok) {
-        throw new Error(data.message || `HTTP error! status: ${response.status}`);
+      if (error) {
+        console.error('❌ Storage upload error:', error);
+        throw new Error(error.message);
       }
 
-      return data;
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from(TABLES.STORAGE)
+        .getPublicUrl(filePath);
+
+      const fileUrl = urlData.publicUrl;
+
+      console.log('✅ Image uploaded successfully:', {
+        fileName,
+        fileUrl,
+        fileSize: file.size,
+        mimeType: file.type
+      });
+
+      return createApiResponse({
+        fileName,
+        fileUrl,
+        fileSize: file.size,
+        mimeType: file.type
+      }, 'Image uploaded successfully');
+
     } catch (error) {
       console.error('❌ Upload failed:', {
         error,
         errorMessage: error instanceof Error ? error.message : 'Unknown error',
-        errorType: error.constructor.name,
-        url
+        errorType: error.constructor.name
       });
       throw error;
     }
   },
 };
 
-// Health check
+// Health check using Supabase
 export const healthApi = {
   async checkHealth(): Promise<ApiResponse<{
     timestamp: string;
     environment: string;
+    supabaseStatus: string;
   }>> {
-    const url = API_BASE_URL.replace('/api', '/health');
-    
     try {
-      const response = await fetch(url);
-      const data = await response.json();
+      console.log('🏥 Checking Supabase health...');
+      
+      // Test Supabase connection by making a simple query
+      const { data, error } = await supabase
+        .from(TABLES.ITEMS)
+        .select('count', { count: 'exact', head: true });
 
-      if (!response.ok) {
-        throw new Error(data.message || `HTTP error! status: ${response.status}`);
+      if (error) {
+        console.error('❌ Supabase health check failed:', error);
+        throw new Error(error.message);
       }
 
-      return data;
+      const healthData = {
+        timestamp: new Date().toISOString(),
+        environment: 'production',
+        supabaseStatus: 'connected'
+      };
+
+      console.log('✅ Health check passed:', healthData);
+      return createApiResponse(healthData, 'Service is healthy');
     } catch (error) {
-      console.error('Health check failed:', error);
+      console.error('❌ Health check failed:', error);
       throw error;
     }
   },
