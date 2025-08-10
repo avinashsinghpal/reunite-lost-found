@@ -1,4 +1,5 @@
 // API service for Lost & Found using Supabase directly
+// DEPLOYMENT FIX: This file now uses Supabase instead of localhost API
 import { supabase, TABLES } from './supabase'
 
 export interface Item {
