@@ -75,9 +75,23 @@ async function apiRequest<T>(
     ...options,
   };
 
+  console.log('🌐 Making API request:', {
+    url,
+    method: config.method || 'GET',
+    headers: config.headers,
+    body: config.body
+  });
+
   try {
     const response = await fetch(url, config);
+    console.log('✅ API response received:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries())
+    });
+
     const data = await response.json();
+    console.log('📦 API response data:', data);
 
     if (!response.ok) {
       throw new Error(data.message || `HTTP error! status: ${response.status}`);
@@ -85,7 +99,13 @@ async function apiRequest<T>(
 
     return data;
   } catch (error) {
-    console.error('API request failed:', error);
+    console.error('❌ API request failed:', {
+      error,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      errorType: error.constructor.name,
+      url,
+      config
+    });
     throw error;
   }
 }
@@ -147,18 +167,31 @@ export const itemsApi = {
 export const uploadApi = {
   // Upload an image file
   async uploadImage(file: File): Promise<UploadResponse> {
+    console.log('📤 Starting image upload:', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type
+    });
+
     const formData = new FormData();
     formData.append('image', file);
 
     const url = `${API_BASE_URL}/upload`;
     
     try {
+      console.log('🌐 Uploading to:', url);
       const response = await fetch(url, {
         method: 'POST',
         body: formData,
       });
 
+      console.log('✅ Upload response received:', {
+        status: response.status,
+        statusText: response.statusText
+      });
+
       const data = await response.json();
+      console.log('📦 Upload response data:', data);
 
       if (!response.ok) {
         throw new Error(data.message || `HTTP error! status: ${response.status}`);
@@ -166,7 +199,12 @@ export const uploadApi = {
 
       return data;
     } catch (error) {
-      console.error('Upload failed:', error);
+      console.error('❌ Upload failed:', {
+        error,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorType: error.constructor.name,
+        url
+      });
       throw error;
     }
   },
