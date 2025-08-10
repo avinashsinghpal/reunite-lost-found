@@ -15,6 +15,7 @@ import Contact from "@/pages/Contact";
 import Privacy from "@/pages/Privacy";
 import ItemDetails from "@/pages/ItemDetails";
 import { ItemsProvider } from "@/context/ItemsContext";
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
 
 const queryClient = new QueryClient();
 
@@ -23,28 +24,30 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <ItemsProvider>
-          <div className="min-h-screen flex flex-col">
-            <Navbar />
-            <div className="flex-1">
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/lost" element={<LostItems />} />
-                <Route path="/found" element={<FoundItems />} />
-                <Route path="/report-lost" element={<ReportLost />} />
-                <Route path="/report-found" element={<ReportFound />} />
-                <Route path="/items/:id" element={<ItemDetails />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/privacy" element={<Privacy />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+      <ThemeProvider>
+        <BrowserRouter>
+          <ItemsProvider>
+            <div className="min-h-screen flex flex-col">
+              <Navbar />
+              <div className="flex-1">
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/lost" element={<LostItems />} />
+                  <Route path="/found" element={<FoundItems />} />
+                  <Route path="/report-lost" element={<ReportLost />} />
+                  <Route path="/report-found" element={<ReportFound />} />
+                  <Route path="/items/:id" element={<ItemDetails />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/privacy" element={<Privacy />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </div>
+              <Footer />
             </div>
-            <Footer />
-          </div>
-        </ItemsProvider>
-      </BrowserRouter>
+          </ItemsProvider>
+        </BrowserRouter>
+      </ThemeProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

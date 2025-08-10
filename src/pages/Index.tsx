@@ -53,8 +53,48 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      {/* Feature Catalogue - before footer */}
+      <section className="container mx-auto pb-16">
+        <div className="mb-6">
+          <h2 className="text-2xl font-semibold tracking-tight">Feature Catalogue</h2>
+          <p className="text-muted-foreground">Everything you need to reunite with your belongings.</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <Feature title="Quick Reports" desc="Create a lost/found report in under a minute." icon="FilePlus" />
+          <Feature title="Map Location" desc="Drop a pin where the item was lost or found." icon="MapPin" />
+          <Feature title="Image Uploads" desc="Attach photos to help others recognize items." icon="Image" />
+          <Feature title="Contact Options" desc="Share email or phone securely to coordinate." icon="Mail" />
+          <Feature title="Search & Filters" desc="Scan items rapidly with an intuitive layout." icon="Search" />
+          <Feature title="Privacy-first" desc="We minimize data and keep it under your control." icon="Shield" />
+        </div>
+      </section>
     </main>
   );
 };
+
+import { FilePlus, MapPin, Image as ImageIcon, Mail, Search, Shield } from "lucide-react";
+
+const IconMap: Record<string, React.ComponentType<any>> = {
+  FilePlus,
+  MapPin,
+  Image: ImageIcon,
+  Mail,
+  Search,
+  Shield,
+};
+
+function Feature({ title, desc, icon }: { title: string; desc: string; icon: keyof typeof IconMap | string }) {
+  const IconComp = IconMap[(icon as keyof typeof IconMap)] || FilePlus;
+  return (
+    <div className="rounded-lg border p-6 hover-scale animate-enter">
+      <div className="flex items-center gap-3 mb-3">
+        <IconComp className="h-5 w-5 text-primary" />
+        <h3 className="text-base font-medium">{title}</h3>
+      </div>
+      <p className="text-sm text-muted-foreground">{desc}</p>
+    </div>
+  );
+}
 
 export default Index;

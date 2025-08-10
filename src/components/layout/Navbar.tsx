@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import ThemeToggle from "@/components/theme/ThemeToggle";
 
 const navLinkCls = ({ isActive }: { isActive: boolean }) =>
   `${isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"} transition-colors`;
@@ -26,6 +27,7 @@ const Navbar = () => {
         </div>
 
         <div className="hidden md:flex items-center gap-2">
+          <ThemeToggle />
           <Button asChild variant="outline">
             <Link to="/report-found">Report Found</Link>
           </Button>
@@ -46,6 +48,10 @@ const Navbar = () => {
       {open && (
         <div className="md:hidden border-t">
           <div className="container mx-auto py-4 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Menu</span>
+              <ThemeToggle />
+            </div>
             <NavLink to="/" end className={navLinkCls} onClick={() => setOpen(false)}>Home</NavLink>
             <NavLink to="/lost" className={navLinkCls} onClick={() => setOpen(false)}>Lost Items</NavLink>
             <NavLink to="/found" className={navLinkCls} onClick={() => setOpen(false)}>Found Items</NavLink>
