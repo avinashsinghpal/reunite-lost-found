@@ -10,7 +10,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 // Database table names
 export const TABLES = {
   ITEMS: 'items',
-  STORAGE: 'lost_found_images'
+  // Must match the actual Supabase Storage bucket name in your project
+  STORAGE: 'item-images'
 } as const
 
 export default supabase

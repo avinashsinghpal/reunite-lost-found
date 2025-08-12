@@ -250,7 +250,9 @@ export const uploadApi = {
       // Generate unique filename
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `${TABLES.STORAGE}/${fileName}`;
+      // In Supabase, the path provided to .upload() is relative to the bucket root.
+      // Do NOT prefix the bucket name here; use folders if desired (e.g., 'uploads/filename').
+      const filePath = `uploads/${fileName}`;
 
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage
